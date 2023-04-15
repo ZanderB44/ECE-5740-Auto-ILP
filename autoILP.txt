@@ -1,0 +1,150 @@
+from typing import Dict, List
+from pulp import *
+import networkx as nx
+import sys
+
+if "-l" in sys.argv:
+	latencyIndex = sys.argv.index("-l")
+	latency = int(sys.argv.index[latencyIndex + 1])
+
+if "-a" in sys.argv:
+	memoryIndex = sys.argv.index("-a")
+	memory = int(sys.argv.index[memoryIndex + 1])
+
+if "-g" in sys.argv:
+	fileIndex = sys.argv.index("-g")
+	file = sys.argv.index[fileIndex + 1]
+
+# Read the DFG from an external file in edge-list format
+filename = file # Pull this from filename
+G = nx.read_weighted_edgelist(filename, nodetype=int)
+
+# Create a PuLP problem
+prob = list()
+# prob = LpProblem("DFG scheduling", LpMinimize)
+
+# Create decision variables
+x = dict()
+# x = LpVariable.dicts("node", G.edges(), lowBound=0, cat="Integer")
+
+allPaths = []
+
+# Add source and sink nodes
+firstNode = -1
+G.add_nodes(firstNode)
+lastNode = max(G.nodes())
+G.add_nodes(lastNode + 1)
+lastNode = max(G.nodes())
+
+for node in G.nodes():
+     if (len(G.nodes(node).predecessors()) == 0):
+          G.add_edge(-1, node)
+
+for node in G.nodes():
+     if (len(G.nodes(node).successors()) == 0):
+          G.add_edge(node, lastNode)
+
+# Define source and sink nodes
+source = firstNode
+sink = lastNode
+
+# Find paths from source to sink
+def FindAllPaths (G : Graph, src : int, dst : int, allPaths : List[List[int]]):
+    path = []
+    path.append(src)
+
+    DFS(G, src, dst, path)
+
+def DFS (G : Graph, src : int, dst : int, path : List[int], allPaths : List[List[int]]):
+    if (src == dst):
+        allPaths.append(copy.deepcopy(path))
+    else:
+        for adjNode in G.successors(src):
+            path.append(adjNode)
+            DFS(G, adjNode, dst, path)
+            path.pop()
+
+nodesASAP = {}
+for i in G.nodes():
+     nodesASAP.update({i, lastNode})
+nodesALAP = {}
+for i in G.nodes():
+     nodesALAP.update({i, 0})
+
+# Find the earliest step location of each node
+def ASAP (allPaths : List[List[int]], nodesASAP : Dict[int, int]):
+     for paths in allPaths:
+          for nodes in allPaths[paths]:
+               #minimize
+               if (allPaths[paths[nodes]] < nodesASAP[nodes]):
+                    nodesASAP[nodes] = allPaths[paths[nodes]]
+
+# Find the latest step location of each node
+def ALAP (allPaths : List[List[int]], nodesALAP : Dict[int, int]):
+     for paths in allPaths:
+          for nodes in allPaths[paths]:
+               #maximize
+               if (allPaths[paths[nodes]] > nodesALAP[nodes]):
+                    nodesALAP[nodes] = allPaths[paths[nodes]]
+
+# Calculates the slack of each node
+nodesSlack = {}
+def slack (nodesASAP : Dict[int, int], nodesALAP : Dict[int, int], nodesSlack : Dict[int, int]):
+     for node in nodesSlack:
+          nodesSlack[node] = nodesASAP[node] - nodesALAP[node]
+
+# Creates a dictionary for the variables. Key = node, Value = List of all possible step locations
+variables = {}
+for node in G.nodes():
+     variables.update({node, List[int]})
+
+# Adds all possible step locations to each list of step locations
+for node in variables:
+     for i in range(nodesASAP[node], nodesALAP[node]):
+          variables[node].append(i)
+
+# Creates a dictionary of all variables. Key = node, Value = all variables in "x1_1" form
+variableStrings = {}
+for node in variables:
+     variableStrings.update({node, List[int]})
+
+for node in variables:
+    for step in variables[node]:
+        variableString = f"x{node}_{step}"
+        variableStrings[node].append(variableString)
+
+# Execution constraint: Each node is only executed once
+exeConstraint = []
+for node in variableStrings:
+     for i in variableString[node]:
+          exeConstraint.append(variableStrings[node[i]])
+          if (i < len(variableString[node])):
+               exeConstraint.append("+")
+          else:
+               exeConstraint.append("=1")
+
+# Add objective function (Might not need this)
+# prob += lpSum([x[(i, j)] * w for i, j, w in G.edges(data='weight')])
+
+# Add constraints for each node
+for j in G.nodes():
+    prob += lpSum([x[(i, j)] for i in G.predecessors(j)]) <= lpSum([x[(j, k)] for k in G.successors(j)])
+
+# Add constraints for source nodes
+for i in G.nodes():
+    if G.in_degree(i) == 0:
+        prob += lpSum([x[(i, j)] for j in G.successors(i)]) == 1
+
+# Add constraints for sink nodes
+for j in G.nodes():
+    if G.out_degree(j) == 0:
+        prob += lpSum([x[(i, j)] for i in G.predecessors(j)]) == 1
+
+# Solve the problem
+prob.solve()
+
+# Print the solution
+print("Optimal schedule:")
+for i, j, _ in G.edges(data='weight'):
+    if x[(i,j)].varValue == 1:
+        print(f"{i} -> {j}")
