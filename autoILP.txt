@@ -114,14 +114,59 @@ for node in variables:
         variableStrings[node].append(variableString)
 
 # Execution constraint: Each node is only executed once
-exeConstraint = []
+eConstraint = []
 for node in variableStrings:
      for i in variableString[node]:
-          exeConstraint.append(variableStrings[node[i]])
+          eConstraint.append(variableStrings[node[i]])
           if (i < len(variableString[node])):
-               exeConstraint.append("+")
+               eConstraint.append("+")
           else:
-               exeConstraint.append("=1")
+               eConstraint.append("=1")
+
+# Dependency constraint: Nodes are executed in order
+dConstraint = []
+dConstraintNodes = {}
+lhsNodes = []
+rhsNodes = []
+lhsEq = []
+rhsEq = []
+# This will make a dictionary where the key is the original node and the values for that key are all successors of that original node
+for node in G.nodes():
+     if (len(G.nodes(node).successors()) > 0):
+          for successor in G.nodes(node).successors():
+               dConstraintNodes.update({node, successor})
+
+# Loop through all nodes and all successors in dConstraintNodes. 
+
+# Loop through all nodes, and all successors for that node. For each node, add all variables of that node to lhsEq with their appropriate
+# weighting. For each successor, add all variables of that successor to rhsEq with their appropriate weighting.
+for node in G.nodes():
+     if (len(G.nodes(node).successors()) > 0):
+          for var in variables:
+               string = f"x{node}"
+               if (var.contains(string)):
+                    vars = var.split("_")
+                    weight = vars[1]
+                    lhsEq.append(weight + var + "+") # Need to figure out how to not add a "+" on the last value
+     for successor in G.nodes(node).successors():
+          for var in variables:
+               string = f"x{successor}"
+               if (var.contains(string)):
+                    var = var.split("_")
+                    weight = vars[1]
+                    rhsEq.append(weight + var + "+") # Need to figure out how to not add a "+" on the last value
+          
+
+     
+
+# Resource constraint: The nodes executed in each step don't overuse the memory constraint
+rConstraint = []
+
+
+
+
+
+
 
 # Add objective function (Might not need this)
 # prob += lpSum([x[(i, j)] * w for i, j, w in G.edges(data='weight')])
