@@ -136,28 +136,28 @@ for node in G.nodes():
           for successor in G.nodes(node).successors():
                dConstraintNodes.update({node, successor})
 
-# Loop through all nodes and all successors in dConstraintNodes. 
-
-# Loop through all nodes, and all successors for that node. For each node, add all variables of that node to lhsEq with their appropriate
-# weighting. For each successor, add all variables of that successor to rhsEq with their appropriate weighting.
-for node in G.nodes():
-     if (len(G.nodes(node).successors()) > 0):
+# Loop through all nodes and all successors in dConstraintNodes.
+index = 0
+for node in dConstraintNodes:
+     for successor in dConstraintNodes[node]:
+          eqString = ""
           for var in variables:
                string = f"x{node}"
                if (var.contains(string)):
                     vars = var.split("_")
                     weight = vars[1]
-                    lhsEq.append(weight + var + "+") # Need to figure out how to not add a "+" on the last value
-     for successor in G.nodes(node).successors():
+                    eqString.append(weight + node + "+") # Need to figure out how to not add a "+" on the last value
+          eqString = eqString.rstrip(eqString[-1])
+          eqString.append(">=")
           for var in variables:
                string = f"x{successor}"
-               if (var.contains(string)):
-                    var = var.split("_")
+               if (var.contains(successor)):
+                    vars = var.split("_")
                     weight = vars[1]
-                    rhsEq.append(weight + var + "+") # Need to figure out how to not add a "+" on the last value
-          
-
-     
+                    eqString.append(weight + successor + "+") # Need to figure out how to not add a "+" on the last value
+          eqString = eqString.rstrip(eqString[-1])
+          dConstraint[index].append(eqString)
+          index = index + 1
 
 # Resource constraint: The nodes executed in each step don't overuse the memory constraint
 rConstraint = []
