@@ -40,7 +40,7 @@ with open("formulations.lp", "w") as f:
         string_list = " ".join(variable)
         f.write(f"{string_list} ")
 
-os.system("glpsol formulations.lp --lp -o solution.lp")
+os.system("glpsol formulations.lp --lp -o solution.lp") 
 	
 	
 	
