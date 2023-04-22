@@ -1,4 +1,5 @@
 from typing import Dict, List
+import copy
 import networkx as nx
 import sys
 
@@ -51,34 +52,31 @@ def main():
     else:
         schedulingMethod = "Memory"
 
-    G = createGraph(file, nodeWeights)
-
-    source = findSource(G)
-    sink = findSink(G)
-
-    findAllPaths(G, source, sink, allPaths)
-
-    ASAPNodes(G, nodesASAP, sink)
-    ALAPNodes(G, nodesALAP)
-
-    ASAP(allPaths, nodesASAP)
-    ALAP(allPaths, nodesALAP, latency)
-    slack(nodesASAP, nodesALAP, nodesSlack)
-
-    createVariables(G, variables)
-
-    stepLocations(variables, nodesASAP, nodesALAP)
-
-    variablesWithSteps(variables, variableStrings)
-
-    exeConstraints(eConstraint, variableStrings)
-
-    depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
-
-    resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
-
     match schedulingMethod:
         case "Pareto-Optimal":
+            G = createGraph(file, nodeWeights)
+            source = findSource(G)
+            sink = findSink(G)
+            findAllPaths(G, source, sink, allPaths)
+            ASAPNodes(G, nodesASAP, sink)
+            ALAPNodes(G, nodesALAP)
+            ASAP(allPaths, nodesASAP)
+            longestPath = criticalPath(allPaths)
+            for latency in longestPath:
+                testLatency = latency + len(longestPath)
+                ALAP(allPaths, nodesALAP, testLatency)
+                slack(nodesASAP, nodesALAP, nodesSlack)
+                createVariables(G, variables)
+                stepLocations(variables, nodesASAP, nodesALAP)
+                variablesWithSteps(variables, variableStrings)
+                exeConstraints(eConstraint, variableStrings)
+                depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
+                for memory in G.nodes(): # Runs resConstraints for any value between 0 and # of nodes
+                    if (memory == 0):
+                        continue
+                    else:
+                        resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
+                        # write text file
             print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
@@ -90,7 +88,8 @@ def main():
             ASAP(allPaths, nodesASAP)
             longestPath = criticalPath(allPaths)
             for latency in longestPath:
-                ALAP(allPaths, nodesALAP, latency)
+                testLatency = latency + len(longestPath)
+                ALAP(allPaths, nodesALAP, testLatency)
                 slack(nodesASAP, nodesALAP, nodesSlack)
                 createVariables(G, variables)
                 stepLocations(variables, nodesASAP, nodesALAP)
@@ -101,6 +100,18 @@ def main():
                 # write text file
             print("Do latency minimization under resource constraints")
         case "Memory":
+            G = createGraph(file, nodeWeights)
+            source = findSource(G)
+            sink = findSink(G)
+            findAllPaths(G, source, sink, allPaths)
+            ASAPNodes(G, nodesASAP, sink)
+            ALAPNodes(G, nodesALAP)
+            ASAP(allPaths, nodesASAP)
+            ALAP(allPaths, nodesALAP, latency)
+            slack(nodesASAP, nodesALAP, nodesSlack)
+            createVariables(G, variables)
+            stepLocations(variables, nodesASAP, nodesALAP)
+            variablesWithSteps(variables, variableStrings)
             longestPath = criticalPath(allPaths)
             if (longestPath > latency):
                 print("infeasible")
@@ -293,3 +304,4 @@ def resConstraints (variableStrings, rConstraintVars, nodeWeights, memory, rCons
         rConstraint[step] = string.rstrip(string[-1])
         rConstraint[step].append("<=" + memory)
     
+
