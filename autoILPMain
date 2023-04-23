@@ -2,6 +2,7 @@ from typing import Dict, List
 import copy
 import networkx as nx
 import sys
+import os
 
 def main():
     minimizeLatency = False
@@ -76,7 +77,10 @@ def main():
                         continue
                     else:
                         resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
+                        
                         # write text file
+                        writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
+                        runGLPK(memory, latency)
             print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
@@ -97,7 +101,12 @@ def main():
                 exeConstraints(eConstraint, variableStrings)
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
                 resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
-                # write text file
+                # write text file 
+                # (here?)
+                writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
+                runGLPK(memory, latency)
+            #(or here?)
+            
             print("Do latency minimization under resource constraints")
         case "Memory":
             G = createGraph(file, nodeWeights)
@@ -124,6 +133,8 @@ def main():
                 else:
                     resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
                     # write text file
+                    writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
+                    runGLPK(memory, latency)
             print("Do memory minimization under latency constraints")
         case _:
             print("error")
@@ -303,5 +314,38 @@ def resConstraints (variableStrings, rConstraintVars, nodeWeights, memory, rCons
         string = rConstraint[step]
         rConstraint[step] = string.rstrip(string[-1])
         rConstraint[step].append("<=" + memory)
-    
 
+def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
+     constraintList = eConstraint + rConstraint + dConstraint
+     objStatement = memory
+     # Creates a new file called 'formulations.lp' that will be submitted to GLPK
+     with open("formulations.lp", "w") as f:
+          # Write objective statement (Cunxi said to just write a constant, might be wrong)
+          f.write(f"Minimize \nobj: {objStatement}")
+
+          # Write dependency and memory constraints 
+          f.write("\n\nSubject To\n")
+          for i, const in enumerate(constraintList):
+               f.write(f"c{i+1}:{const}\n")
+
+          # Write pos-int constraints 
+          for i, variableList in variableStrings.items():
+               for variable in variableList:
+                    f.write(f"i{i}:{variable} >= 0\n")
+
+          # Define variables as ints 
+          f.write("\nInteger\n")
+          for variable in variableStrings.values():
+               string_list = " ".join(variable)
+               f.write(f"{string_list} ")
+
+def runGLPK(memory, latency):
+     # Run glpsol command
+     os.system("glpsol formulations.lp --lp -o solution.lp")
+
+     # Open solution.lp file and check if it contains "INFEASIBLE"
+     with open("solution.lp", "r") as f:
+          if "INFEASIBLE" not in f.read():
+               return f"MEMORY: {memory}, LATENCY: {latency} IS FEASIBLE"
+          else:
+               return f"MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE"
