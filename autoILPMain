@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 import sys
 import os
 
-
 def main():
+    print("got here")
+    print(sys.argv)
     minimizeLatency = False
     minimizeMemory = False
     schedulingMethod = ""
@@ -36,27 +37,34 @@ def main():
     #runGLPKPareto
     feasibleCoords = []
 
-    if "-l" in sys.argv:
-        latencyIndex = sys.argv.index("-l")
-        latency =  int(sys.argv.index[latencyIndex + 1])
+    if "-l=" in sys.argv:
+        latencyIndex = sys.argv.index("-l=")
+        latency =  sys.argv[latencyIndex + 1]
         minimizeMemory = True
+        print(latency)
+        
 
-    if "-a" in sys.argv:
-        memoryIndex = sys.argv.index("-a")
-        memory =  int(sys.argv.index[memoryIndex + 1])
+    if "-a=" in sys.argv:
+        memoryIndex = sys.argv.index("-a=")
+        memory =  sys.argv[memoryIndex + 1]
         minimizeLatency = True
+        print(memory)
 
-    if "-g" in sys.argv:
-        fileIndex = sys.argv.index("-g")
-        file = sys.argv.index[fileIndex + 1]
+    if "-g=" in sys.argv:
+        fileIndex = sys.argv.index("-g=")
+        file = sys.argv[fileIndex + 1]
+        print(file)
             
     if (minimizeLatency & minimizeMemory):
         schedulingMethod = "Pareto-Optimal"
+        print("got here Pareto")
     elif (minimizeLatency & ~minimizeMemory):
         schedulingMethod = "Latency"
+        print("got here Lat Min")
     else:
         schedulingMethod = "Memory"
-
+        print("got here Mem Min")
+    
     match schedulingMethod:
         case "Pareto-Optimal":
             G = createGraph(file, nodeWeights)
@@ -145,38 +153,49 @@ def main():
             print("error")
 
 # Creates and returns the graph G
-def createGraph (file : str, nodeWeights : dict({})):
+def createGraph (file, nodeWeights):
     # Read the DFG from an external file in edge-list format
     filename = file # Pull this from filename
-    G = nx.read_weighted_edgelist(filename, nodetype=int)
+    G = nx.read_weighted_edgelist(filename, create_using = nx.DiGraph, nodetype = int)
 
     # Add source and sink nodes
     firstNode = -1
-    G.add_nodes(firstNode)
-    lastNode = max(G.nodes())
-    G.add_nodes(lastNode + 1)
+    G.add_node(firstNode)
     lastNode = max(G.nodes())
 
     # Assign a weight to each node. Node weight is the sum of all fan-out edge weights
     for node in G.nodes():
-        nodeWeights.update({node, 0})
+        nodeWeights.update({node : 0})
     for node in G.nodes():
-        if (len(G.nodes(node).successors()) != 0):
-            for successor in G.nodes(node).successors():
-                nodeWeights[node] = nodeWeights[node] + G[node][successor]["weight"] # G[node][successor]["weight"] should hopefully return the weight of the edge between the node and the successor
+        if (len(list(G.successors(node))) != 0):
+            for successor in G.successors(node):
+                nodeWeights[node] = nodeWeights[node] + G[node][successor]["weight"]
 
+    edgesToAdd = []
     for node in G.nodes():
-        if (len(G.nodes(node).successors()) == 0):
-            G.remove_node(node)
+        if ((len(list(G.predecessors(node))) == 0) & (node != firstNode)):
+            edgesToAdd.append([-1, node])
+    G.add_edges_from(edgesToAdd)
 
+    nodesToRemove = []
     for node in G.nodes():
-        if (len(G.nodes(node).predecessors()) == 0):
-            G.add_edge(-1, node)
+        if (len(list(G.successors(node))) == 0):
+            nodesToRemove.append(node)
+    G.remove_nodes_from(nodesToRemove)
 
+    G.add_node(lastNode + 1)
+    lastNode = max(G.nodes())
+
+    edgesToAdd2 = []
     for node in G.nodes():
-        if (len(G.nodes(node).successors()) == 0):
-            G.add_edge(node, lastNode)
-    
+        if ((len(list(G.successors(node))) == 0) & (node != lastNode)):
+            edgesToAdd2.append([node, lastNode])
+    G.add_edges_from(edgesToAdd2)
+
+    for node in nodesToRemove:
+        if node in nodeWeights:
+            del nodeWeights[node]
+
     return G
 
 # Finds and returns the source node of the graph
@@ -194,7 +213,7 @@ def findAllPaths (G, src : int, dst : int, allPaths : List[List[int]]):
     path = []
     path.append(src)
 
-    DFS(G, src, dst, path)
+    DFS(G, src, dst, path, allPaths)
 
 # Depth-First Search, called in findAllPaths()
 def DFS (G, src : int, dst : int, path : List[int], allPaths : List[List[int]]):
@@ -203,7 +222,7 @@ def DFS (G, src : int, dst : int, path : List[int], allPaths : List[List[int]]):
     else:
         for adjNode in G.successors(src):
             path.append(adjNode)
-            DFS(G, adjNode, dst, path)
+            DFS(G, adjNode, dst, path, allPaths)
             path.pop()
 
 def criticalPath (allPaths):
@@ -214,11 +233,11 @@ def criticalPath (allPaths):
 
 def ASAPNodes (G, nodesASAP : dict({}), lastNode):
     for i in G.nodes():
-        nodesASAP.update({i, lastNode})
+        nodesASAP.update({i : lastNode})
 
 def ALAPNodes (G, nodesALAP : dict({})):
     for i in G.nodes():
-        nodesALAP.update({i, 0})
+        nodesALAP.update({i : 0})
 
 # Find the earliest step location of each node
 def ASAP (allPaths : List[List[int]], nodesASAP : Dict[int, int]):
@@ -243,7 +262,7 @@ def slack (nodesASAP : Dict[int, int], nodesALAP : Dict[int, int], nodesSlack : 
 # Creates a dictionary for the variables. Key = node, Value = List of all possible step locations
 def createVariables (G, variables):
     for node in G.nodes():
-        variables.update({node, List[int]})
+        variables.update({node : List[int]})
 
 # Adds all possible step locations to each list of step locations
 def stepLocations (variables, nodesASAP, nodesALAP):
@@ -254,7 +273,7 @@ def stepLocations (variables, nodesASAP, nodesALAP):
 # Creates a dictionary of all variables. Key = node, Value = all variables in "x1_1" form
 def variablesWithSteps (variables, variableStrings):
     for node in variables:
-        variableStrings.update({node, List[int]})
+        variableStrings.update({node : List[int]})
     for node in variables:
         for step in variables[node]:
             variableString = f"x{node}_{step}"
@@ -275,7 +294,7 @@ def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
     for node in G.nodes():
         if (len(G.nodes(node).successors()) > 0):
             for successor in G.nodes(node).successors():
-                dConstraintNodes.update({node, successor})
+                dConstraintNodes.update({node : successor})
 
     # Loop through all nodes and all successors in dConstraintNodes.
     index = 0
@@ -303,7 +322,7 @@ def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
 def resConstraints (variableStrings, rConstraintVars, nodeWeights, memory, rConstraint):
     # Makes a dictionary of all the variables and their corresponding weights
     for var in variableStrings:
-        rConstraintVars.update({var, None})
+        rConstraintVars.update({var : None})
     for node in nodeWeights:
         string = f"x{node}_"
         for var in rConstraintVars:
@@ -385,3 +404,6 @@ def runParetoOpt(feasibleCoords):
 
     # Show plot
     plt.show()
+
+if __name__== "__main__":
+    main()
