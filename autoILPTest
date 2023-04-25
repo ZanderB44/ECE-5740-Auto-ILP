@@ -451,9 +451,10 @@ def runGLPKPareto(memory, latency, feasibleCoords):
 
     # Open solution.lp file and check if it contains "INFEASIBLE"
     with f:
-        if "ERROR" in f.read():
+        fileContent = f.read()
+        if "ERROR" in fileContent:
             print("ILP FORMULATION ERROR")
-        elif "INFEASIBLE" not in f.read():
+        elif "INFEASIBLE" in fileContent:
             print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE==========================")
         else:
             #X coord = memory Y = latency
