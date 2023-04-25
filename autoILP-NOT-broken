@@ -441,15 +441,8 @@ def runGLPKPareto(memory, latency, feasibleCoords):
     # Run glpsol command
     os.system("glpsol formulations.lp --lp solution.lp")
 
-    try:
-        f = open("solutions.lp", "r")
-    except OSError:
-        print ("Could not open/read file:", "solutions.lp")
-        sys.exit()
-
     # Open solution.lp file and check if it contains "INFEASIBLE"
-    #with open("solution.lp", "r") as f:
-    with f:
+    with open("solution.lp", "r") as f:
         if "ERROR" in f.read():
             return "ILP FORMULATION ERROR"
         elif "INFEASIBLE" not in f.read():
