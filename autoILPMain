@@ -266,18 +266,18 @@ def slack (nodesASAP : Dict[int, int], nodesALAP : Dict[int, int], nodesSlack : 
 # Creates a dictionary for the variables. Key = node, Value = List of all possible step locations
 def createVariables (G, variables):
     for node in G.nodes():
-        variables.update({node : List[int]})
+        variables[node] = []
 
 # Adds all possible step locations to each list of step locations
 def stepLocations (variables, nodesASAP, nodesALAP):
     for node in variables:
-        for i in range(nodesASAP[node], nodesALAP[node]):
+        for i in range(nodesASAP[node], nodesALAP[node] + 2): # THIS IS PROBABLY NOT THE RIGHT WAY TO DO THIS
             variables[node].append(i)
 
 # Creates a dictionary of all variables. Key = node, Value = all variables in "x1_1" form
 def variablesWithSteps (variables, variableStrings):
     for node in variables:
-        variableStrings.update({node : List[int]})
+        variableStrings[node] = []
     for node in variables:
         for step in variables[node]:
             variableString = f"x{node}_{step}"
@@ -296,8 +296,8 @@ def exeConstraints (eConstraint, variableStrings):
 def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
     # This will make a dictionary where the key is the original node and the values for that key are all successors of that original node
     for node in G.nodes():
-        if (len(G.nodes(node).successors()) > 0):
-            for successor in G.nodes(node).successors():
+        if (len(list(G.successors(node))) > 0):
+            for successor in G.successors(node):
                 dConstraintNodes.update({node : successor})
 
     # Loop through all nodes and all successors in dConstraintNodes.
