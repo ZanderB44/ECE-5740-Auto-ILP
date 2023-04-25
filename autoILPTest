@@ -74,7 +74,7 @@ def main():
             longestPath = criticalPath(allPaths)
             testLatency = 0
             #for testLatency in range(0, 2 * latency):
-            for testLatency in range(latency, latency):
+            for testLatency in range(latency, latency+1):
                 if (longestPath > testLatency):
                     #print("infeasible")
                     print(f"LATENCY: {testLatency} IS INFEASIBLE")
@@ -92,7 +92,7 @@ def main():
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
                 testMemory = 0
                 #for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
-                for testMemory in range(memory,memory):
+                for testMemory in range(memory,memory+1):
                     if (testMemory == 0):
                         continue
                     else:
