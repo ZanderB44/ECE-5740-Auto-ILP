@@ -20,8 +20,6 @@ def main():
     nodesASAP = {}
     # ALAPNodes()
     nodesALAP = {}
-    # slack()
-    nodesSlack = {}
     # createVariables()
     variables = {}
     # variablesWithSteps()
@@ -32,7 +30,6 @@ def main():
     dConstraint = []
     dConstraintNodes = {}
     # resConstraints()
-    rConstraintVars = {}
     rConstraint = []
     #runGLPKPareto
     feasibleCoords = []
@@ -76,8 +73,7 @@ def main():
             findAllPaths(G, source, sink, allPaths)
             longestPath = criticalPath(allPaths)
             testLatency = 0
-            #for testLatency in range(0, 2 * latency):
-            for testLatency in range(4,5):
+            for testLatency in range(0, 2 * latency):
                 if (longestPath > testLatency):
                     print("infeasible")
                     print(f"LATENCY: {testLatency} IS INFEASIBLE")
@@ -87,7 +83,6 @@ def main():
                 ALAPNodes(G, nodesALAP, testLatency)
                 ALAP(allPaths, nodesALAP, testLatency)
                 ASAP(allPaths, nodesASAP)
-                slack(nodesASAP, nodesALAP, nodesSlack)
                 createVariables(G, variables)
                 stepLocations(variables, nodesASAP, nodesALAP)
                 variablesWithSteps(variables, variableStrings)
@@ -98,11 +93,19 @@ def main():
                     if (testMemory == 0):
                         continue
                     else:
-                        resConstraints(variableStrings, rConstraintVars, nodeWeights, testMemory, rConstraint)
+                        resConstraints(variableStrings, nodeWeights, testMemory, rConstraint)
                         # write text file
-                        # writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
-                        # runGLPKPareto(testMemory, latency, feasibleCoords)
-                        # runParetoOpt(feasibleCoords)
+                        writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
+                        runGLPKPareto(testMemory, latency, feasibleCoords)
+                        runParetoOpt(feasibleCoords)
+                    rConstraint.clear()
+                nodesALAP.clear()
+                variables.clear()
+                variableStrings.clear()
+                eConstraint.clear()
+                dConstraint.clear()
+                dConstraintNodes.clear()
+                longestPath.clear()
             print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
@@ -112,22 +115,33 @@ def main():
             ASAPNodes(G, nodesASAP)
             ASAP(allPaths, nodesASAP)
             longestPath = criticalPath(allPaths)
-            testLatency = longestPath
-            while(testLatency < (2 * longestPath)):
+            testLatency = 0
+            for testLatency in range(0, 2 * latency):
+                if (longestPath > testLatency):
+                    print("infeasible")
+                    print(f"LATENCY: {testLatency} IS INFEASIBLE")
+                    continue
+                    # end minimization
                 ALAPNodes(G, nodesALAP, latency)
                 ALAP(allPaths, nodesALAP, latency)
-                slack(nodesASAP, nodesALAP, nodesSlack)
                 createVariables(G, variables)
                 stepLocations(variables, nodesASAP, nodesALAP)
                 variablesWithSteps(variables, variableStrings)
                 removeSource(variableStrings)
                 exeConstraints(eConstraint, variableStrings)
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
-                resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
+                resConstraints(variableStrings, nodeWeights, memory, rConstraint)
                 # write text file 
                 writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
                 runGLPK(memory, latency)
                 testLatency = testLatency + 1
+                nodesALAP.clear()
+                variables.clear()
+                variableStrings.clear()
+                eConstraint.clear()
+                dConstraint.clear()
+                dConstraintNodes.clear()
+                longestPath.clear()
             print("Do latency minimization under resource constraints")
         case "Memory":
             G = createGraph(file, nodeWeights)
@@ -138,7 +152,6 @@ def main():
             ALAPNodes(G, nodesALAP, latency)
             ASAP(allPaths, nodesASAP)
             ALAP(allPaths, nodesALAP, latency)
-            slack(nodesASAP, nodesALAP, nodesSlack)
             createVariables(G, variables)
             stepLocations(variables, nodesASAP, nodesALAP)
             variablesWithSteps(variables, variableStrings)
@@ -154,10 +167,11 @@ def main():
                 if (memory == 0):
                     continue
                 else:
-                    resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
+                    resConstraints(variableStrings, nodeWeights, memory, rConstraint)
                     # write text file
                     writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
                     runGLPK(memory, latency)
+                rConstraint.clear()
             print("Do memory minimization under latency constraints")
         case _:
             print("error")
@@ -268,10 +282,6 @@ def ALAP (allPaths : List[List[int]], nodesALAP : Dict[int, int], latency):
             if ((paths.index(node) + shift) < nodesALAP[node]):
                 nodesALAP[node] = paths.index(node) + shift
 
-def slack (nodesASAP : Dict[int, int], nodesALAP : Dict[int, int], nodesSlack : Dict[int, int]):
-     for node in nodesSlack:
-          nodesSlack[node] = nodesASAP[node] - nodesALAP[node]
-
 # Creates a dictionary for the variables. Key = node, Value = List of all possible step locations
 def createVariables (G, variables):
     for node in G.nodes():
@@ -346,7 +356,7 @@ def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
             dConstraint.append(eqString)
             index = index + 1
 
-def resConstraints (variableStrings, rConstraintVars, nodeWeights, memory, rConstraint):
+def resConstraints (variableStrings, nodeWeights, memory, rConstraint):
     # Makes a dictionary of all the variables and their corresponding weights
     numberOfSteps = 0
     for var in variableStrings:
@@ -369,9 +379,7 @@ def resConstraints (variableStrings, rConstraintVars, nodeWeights, memory, rCons
             string = step.split("_")
             string = string[1]
             rConstraint[int(string) - 1] = rConstraint[int(string) - 1] + str(weight) + " " + step + " + "
-    print(rConstraint)
     rConstraint.pop()
-    print(rConstraint)
     index = 0
     for step in rConstraint:
         string = step
@@ -379,7 +387,7 @@ def resConstraints (variableStrings, rConstraintVars, nodeWeights, memory, rCons
         string = string.rstrip(string[-1])
         string = string.rstrip(string[-1])
         step = string
-        step += " <= " + str(memory)
+        step += " - " + str(memory) + " <= 0"
         rConstraint[index] = step
         index = index + 1
 
@@ -394,12 +402,12 @@ def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
           # Write dependency and memory constraints 
           f.write("\n\nSubject To\n")
           for i, const in enumerate(constraintList):
-               f.write(f"c{i+1}:{const}\n")
+               f.write(f"c{i+1}: {const}\n")
 
           # Write pos-int constraints 
           for i, variableList in variableStrings.items():
                for variable in variableList:
-                    f.write(f"i{i}:{variable} >= 0\n")
+                    f.write(f"i{i}: {variable} >= 0\n")
 
           # Define variables as ints 
           f.write("\nInteger\n")
