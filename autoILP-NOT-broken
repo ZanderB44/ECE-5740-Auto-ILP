@@ -392,28 +392,32 @@ def resConstraints (variableStrings, nodeWeights, memory, rConstraint):
         index = index + 1
 
 def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
-     constraintList = eConstraint + rConstraint + dConstraint
-     objStatement = memory
-     # Creates a new file called 'formulations.lp' that will be submitted to GLPK
-     with open("formulations.lp", "w") as f:
-          # Write objective statement (Cunxi said to just write a constant, might be wrong)
-          f.write(f"Minimize \nobj: {objStatement}")
+    constraintList = eConstraint + rConstraint + dConstraint
+    objStatement = "x1_1"
+    # Creates a new file called 'formulations.lp' that will be submitted to GLPK
+    with open("formulations.lp", "w") as f:
+        # Write objective statement (Cunxi said to just write a constant, might be wrong)
+        f.write(f"Minimize \nobj: {objStatement}")
 
-          # Write dependency and memory constraints 
-          f.write("\n\nSubject To\n")
-          for i, const in enumerate(constraintList):
-               f.write(f"c{i+1}: {const}\n")
+        # Write dependency and memory constraints 
+        f.write("\n\nSubject To\n")
+        for i, const in enumerate(constraintList):
+             f.write(f"c{i+1}: {const}\n")
 
-          # Write pos-int constraints 
-          for i, variableList in variableStrings.items():
-               for variable in variableList:
-                    f.write(f"i{i}: {variable} >= 0\n")
+        # Write pos-int constraints 
+        for i, variableList in variableStrings.items():
+             for variable in variableList:
+                  f.write(f"i{i}: {variable} >= 0\n")
 
-          # Define variables as ints 
-          f.write("\nInteger\n")
-          for variable in variableStrings.values():
-               string_list = " ".join(variable)
-               f.write(f"{string_list} ")
+        # Define variables as ints 
+        f.write("\nInteger\n")
+        for variable in variableStrings.values():
+             string_list = " ".join(variable)
+             f.write(f"{string_list} ")
+        
+        f.write("\n\nEnd")
+
+          
 
 def runGLPK(memory, latency):
      # Run glpsol command
