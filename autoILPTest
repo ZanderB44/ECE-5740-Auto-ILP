@@ -454,11 +454,11 @@ def runGLPKPareto(memory, latency, feasibleCoords):
         if "ERROR" in f.read():
             print("ILP FORMULATION ERROR")
         elif "INFEASIBLE" not in f.read():
+            print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE==========================")
+        else:
             #X coord = memory Y = latency
             feasibleCoords.append([memory, latency])
             print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS FEASIBLE==========================")
-        else:
-            print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE==========================")
           
 def runParetoOpt(feasibleCoords, memory, latency):
     # Split coordinates into x and y lists
