@@ -406,9 +406,12 @@ def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
              f.write(f"c{i+1}: {const}\n")
 
         # Write pos-int constraints 
+        count = 1
         for i, variableList in variableStrings.items():
-             for variable in variableList:
-                  f.write(f"i{i}: {variable} >= 0\n")
+            for variable in variableList:
+                f.write(f"i{count}: {variable} >= 0\n")
+                count = count + 1
+
 
         # Define variables as ints 
         f.write("\nInteger\n")
