@@ -36,22 +36,24 @@ def main():
     rConstraint = []
     #runGLPKPareto
     feasibleCoords = []
+    #criticalPath()
+    longestPath = 0
 
-    if "-l=" in sys.argv:
-        latencyIndex = sys.argv.index("-l=")
+    if "-l" in sys.argv:
+        latencyIndex = sys.argv.index("-l")
         latency =  sys.argv[latencyIndex + 1]
         minimizeMemory = True
         print(latency)
         
 
-    if "-a=" in sys.argv:
-        memoryIndex = sys.argv.index("-a=")
+    if "-a" in sys.argv:
+        memoryIndex = sys.argv.index("-a")
         memory =  sys.argv[memoryIndex + 1]
         minimizeLatency = True
         print(memory)
 
-    if "-g=" in sys.argv:
-        fileIndex = sys.argv.index("-g=")
+    if "-g" in sys.argv:
+        fileIndex = sys.argv.index("-g")
         file = sys.argv[fileIndex + 1]
         print(file)
             
@@ -71,12 +73,12 @@ def main():
             source = findSource(G)
             sink = findSink(G)
             findAllPaths(G, source, sink, allPaths)
-            ASAPNodes(G, nodesASAP, sink)
-            ALAPNodes(G, nodesALAP)
+            ASAPNodes(G, nodesASAP)
             ASAP(allPaths, nodesASAP)
             longestPath = criticalPath(allPaths)
-            for latency in longestPath:
-                testLatency = latency + len(longestPath)
+            testLatency = longestPath
+            while(testLatency < (2 * longestPath)):
+                ALAPNodes(G, nodesALAP, latency)
                 ALAP(allPaths, nodesALAP, testLatency)
                 slack(nodesASAP, nodesALAP, nodesSlack)
                 createVariables(G, variables)
@@ -94,18 +96,19 @@ def main():
                         writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
                         runGLPKPareto(memory, latency, feasibleCoords)
                         runParetoOpt(feasibleCoords)
+                testLatency = testLatency + 1
             print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
             source = findSource(G)
             sink = findSink(G)
             findAllPaths(G, source, sink, allPaths)
-            ASAPNodes(G, nodesASAP, sink)
-            ALAPNodes(G, nodesALAP)
+            ASAPNodes(G, nodesASAP)
             ASAP(allPaths, nodesASAP)
             longestPath = criticalPath(allPaths)
-            for latency in longestPath:
-                testLatency = latency + len(longestPath)
+            testLatency = longestPath
+            while(testLatency < (2 * longestPath)):
+                ALAPNodes(G, nodesALAP, latency)
                 ALAP(allPaths, nodesALAP, testLatency)
                 slack(nodesASAP, nodesALAP, nodesSlack)
                 createVariables(G, variables)
@@ -115,19 +118,17 @@ def main():
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
                 resConstraints(variableStrings, rConstraintVars, nodeWeights, memory, rConstraint)
                 # write text file 
-                # (here?)
                 writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
                 runGLPK(memory, latency)
-            #(or here?)
-            
+                testLatency = testLatency + 1
             print("Do latency minimization under resource constraints")
         case "Memory":
             G = createGraph(file, nodeWeights)
             source = findSource(G)
             sink = findSink(G)
             findAllPaths(G, source, sink, allPaths)
-            ASAPNodes(G, nodesASAP, sink)
-            ALAPNodes(G, nodesALAP)
+            ASAPNodes(G, nodesASAP)
+            ALAPNodes(G, nodesALAP, latency)
             ASAP(allPaths, nodesASAP)
             ALAP(allPaths, nodesALAP, latency)
             slack(nodesASAP, nodesALAP, nodesSlack)
@@ -218,7 +219,7 @@ def findAllPaths (G, src : int, dst : int, allPaths : List[List[int]]):
 # Depth-First Search, called in findAllPaths()
 def DFS (G, src : int, dst : int, path : List[int], allPaths : List[List[int]]):
     if (src == dst):
-        allPaths.append(copy.deepcopy(path)) # NEED TO CHANGE THIS LINE
+        allPaths.append(copy.deepcopy(path))
     else:
         for adjNode in G.successors(src):
             path.append(adjNode)
@@ -230,30 +231,33 @@ def criticalPath (allPaths):
     for path in allPaths:
         if (len(path) > longestPath):
             longestPath = len(path)
+    longestPath = longestPath - 1
+    return longestPath
 
-def ASAPNodes (G, nodesASAP : dict({}), lastNode):
+def ASAPNodes (G, nodesASAP : dict({})):
     for i in G.nodes():
-        nodesASAP.update({i : lastNode})
+        nodesASAP.update({i : 0})
 
-def ALAPNodes (G, nodesALAP : dict({})):
+def ALAPNodes (G, nodesALAP : dict({}), latency):
     for i in G.nodes():
-        nodesALAP.update({i : 0})
+        nodesALAP.update({i : latency})
 
 # Find the earliest step location of each node
 def ASAP (allPaths : List[List[int]], nodesASAP : Dict[int, int]):
      for paths in allPaths:
-          for nodes in allPaths[paths]:
+          for node in paths:
                #minimize
-               if (allPaths[paths[nodes]] < nodesASAP[nodes]):
-                    nodesASAP[nodes] = allPaths[paths[nodes]]
+               if (paths.index(node) > nodesASAP[node]):
+                    nodesASAP[node] = paths.index(node)
 
 # Find the latest step location of each node
 def ALAP (allPaths : List[List[int]], nodesALAP : Dict[int, int], latency):
-     for paths in allPaths:
-          for nodes in allPaths[paths]:
-               #maximize
-               if ((allPaths[paths[nodes]] > nodesALAP[nodes]) & (allPaths[paths[nodes]] <= latency)):
-                    nodesALAP[nodes] = allPaths[paths[nodes]]
+    for paths in allPaths:
+        pathLength = len(paths)
+        shift = latency - pathLength
+        for node in paths:
+            if ((paths.index(node) + shift) < nodesALAP[node]):
+                nodesALAP[node] = paths.index(node) + shift
 
 def slack (nodesASAP : Dict[int, int], nodesALAP : Dict[int, int], nodesSlack : Dict[int, int]):
      for node in nodesSlack:
