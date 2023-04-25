@@ -443,16 +443,22 @@ def runGLPKPareto(memory, latency, feasibleCoords):
     # Run glpsol command
     os.system("glpsol formulations.lp --lp -o solution.lp")
 
+    try:
+        f = open("solution.lp", "r")
+    except OSError:
+        print("Could not open/read file")
+        sys.exit()
+
     # Open solution.lp file and check if it contains "INFEASIBLE"
-    with open("solution.lp", "r") as f:
+    with f:
         if "ERROR" in f.read():
-            return "ILP FORMULATION ERROR"
+            print("ILP FORMULATION ERROR")
         elif "INFEASIBLE" not in f.read():
             #X coord = memory Y = latency
             feasibleCoords.append([memory, latency])
-            return f"MEMORY: {memory}, LATENCY: {latency} IS FEASIBLE"
+            print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS FEASIBLE==========================")
         else:
-            return f"MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE"
+            print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE==========================")
           
 def runParetoOpt(feasibleCoords, memory, latency):
     # Split coordinates into x and y lists
