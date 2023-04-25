@@ -46,7 +46,7 @@ def main():
 
     if "-a" in sys.argv:
         memoryIndex = sys.argv.index("-a")
-        memory =  sys.argv[memoryIndex + 1]
+        memory =  int(sys.argv[memoryIndex + 1])
         minimizeLatency = True
         print(memory)
 
@@ -89,14 +89,15 @@ def main():
                 removeSource(variableStrings)
                 exeConstraints(eConstraint, variableStrings)
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
-                for testMemory in G.nodes(): # Runs resConstraints for any value between 0 and # of nodes
+                testMemory = 0
+                for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
                     if (testMemory == 0):
                         continue
                     else:
                         resConstraints(variableStrings, nodeWeights, testMemory, rConstraint)
                         # write text file
                         writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
-                        runGLPKPareto(testMemory, latency, feasibleCoords)
+                        runGLPKPareto(testMemory, testLatency, feasibleCoords)
                         #runParetoOpt(feasibleCoords)
                     rConstraint.clear()
                 nodesALAP.clear()
@@ -440,8 +441,15 @@ def runGLPKPareto(memory, latency, feasibleCoords):
     # Run glpsol command
     os.system("glpsol formulations.lp --lp solution.lp")
 
+    try:
+        f = open("solutions.lp", "r")
+    except OSError:
+        print ("Could not open/read file:", "solutions.lp")
+        sys.exit()
+
     # Open solution.lp file and check if it contains "INFEASIBLE"
-    with open("solution.lp", "r") as f:
+    #with open("solution.lp", "r") as f:
+    with f:
         if "ERROR" in f.read():
             return "ILP FORMULATION ERROR"
         elif "INFEASIBLE" not in f.read():
