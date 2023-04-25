@@ -315,7 +315,7 @@ def exeConstraints (eConstraint, variableStrings):
             if (variableStrings[node].index(i) + 1 < len(variableStrings[node])):
                 str += " + "
             else:
-                str += " =1 "
+                str += " = 1"
         eConstraint.append(str)
 
 def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
@@ -338,7 +338,7 @@ def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
                 if (string in var):
                         vars = var.split("_")
                         weight = vars[1]
-                        eqString += str(weight) + " " + var + " + " # Need to figure out how to not add a "+" on the last value
+                        eqString += str(weight) + "" + var + " + " # Need to figure out how to not add a "+" on the last value
             eqString = eqString.rstrip(eqString[-1])
             eqString = eqString.rstrip(eqString[-1])
             eqString = eqString.rstrip(eqString[-1])
@@ -348,7 +348,7 @@ def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
                 if (string in var):
                     vars = var.split("_")
                     weight = vars[1]
-                    eqString += str(weight) + " " + var + " - "
+                    eqString += str(weight) + "" + var + " - "
             eqString = eqString.rstrip(eqString[-1])
             eqString = eqString.rstrip(eqString[-1])
             eqString = eqString.rstrip(eqString[-1])
@@ -378,7 +378,7 @@ def resConstraints (variableStrings, nodeWeights, memory, rConstraint):
             weight = int(nodeWeights[var])
             string = step.split("_")
             string = string[1]
-            rConstraint[int(string) - 1] = rConstraint[int(string) - 1] + str(weight) + " " + step + " + "
+            rConstraint[int(string) - 1] = rConstraint[int(string) - 1] + str(weight) + "" + step + " + "
     rConstraint.pop()
     index = 0
     for step in rConstraint:
@@ -387,7 +387,7 @@ def resConstraints (variableStrings, nodeWeights, memory, rConstraint):
         string = string.rstrip(string[-1])
         string = string.rstrip(string[-1])
         step = string
-        step += " - " + str(memory) + " <= 0"
+        step += " <= " + str(memory)
         rConstraint[index] = step
         index = index + 1
 
