@@ -438,7 +438,7 @@ def runGLPK(memory, latency):
           
 def runGLPKPareto(memory, latency, feasibleCoords):
     # Run glpsol command
-    os.system("glpsol formulations.lp --lp -o solution.lp")
+    os.system("glpsol formulations.lp --lp solution.lp")
 
     # Open solution.lp file and check if it contains "INFEASIBLE"
     with open("solution.lp", "r") as f:
