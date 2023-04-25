@@ -75,7 +75,7 @@ def main():
             testLatency = 0
             for testLatency in range(0, 2 * latency):
                 if (longestPath > testLatency):
-                    print("infeasible")
+                    #print("infeasible")
                     print(f"LATENCY: {testLatency} IS INFEASIBLE")
                     continue
                     # end minimization
@@ -97,7 +97,7 @@ def main():
                         # write text file
                         writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
                         runGLPKPareto(testMemory, latency, feasibleCoords)
-                        runParetoOpt(feasibleCoords)
+                        #runParetoOpt(feasibleCoords)
                     rConstraint.clear()
                 nodesALAP.clear()
                 variables.clear()
@@ -105,7 +105,8 @@ def main():
                 eConstraint.clear()
                 dConstraint.clear()
                 dConstraintNodes.clear()
-                longestPath.clear()
+                longestPath = 0
+            runParetoOpt(feasibleCoords)
             print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
@@ -141,7 +142,7 @@ def main():
                 eConstraint.clear()
                 dConstraint.clear()
                 dConstraintNodes.clear()
-                longestPath.clear()
+                longestPath = 0
             print("Do latency minimization under resource constraints")
         case "Memory":
             G = createGraph(file, nodeWeights)
