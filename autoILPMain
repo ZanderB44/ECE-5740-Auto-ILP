@@ -41,7 +41,7 @@ def main():
 
     if "-l" in sys.argv:
         latencyIndex = sys.argv.index("-l")
-        latency =  sys.argv[latencyIndex + 1]
+        latency =  int(sys.argv[latencyIndex + 1])
         minimizeMemory = True
         print(latency)
         
@@ -254,7 +254,7 @@ def ASAP (allPaths : List[List[int]], nodesASAP : Dict[int, int]):
 def ALAP (allPaths : List[List[int]], nodesALAP : Dict[int, int], latency):
     for paths in allPaths:
         pathLength = len(paths)
-        shift = latency - pathLength
+        shift = int(latency) - pathLength
         for node in paths:
             if ((paths.index(node) + shift) < nodesALAP[node]):
                 nodesALAP[node] = paths.index(node) + shift
