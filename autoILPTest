@@ -414,12 +414,11 @@ def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
                 f.write(f"i{count}: {variable} >= 0\n")
                 count = count + 1
 
-
         # Define variables as ints 
         f.write("\nInteger\n")
         for variable in variableStrings.values():
-             string_list = " ".join(variable)
-             f.write(f"{string_list}")
+            string_list = " ".join(variable) + " " 
+            f.write(f"{string_list}")
         f.write(" mem")     
         
         f.write("\n\nEnd")
