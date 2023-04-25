@@ -107,7 +107,7 @@ def main():
                 dConstraint.clear()
                 dConstraintNodes.clear()
                 longestPath = 0
-            runParetoOpt(feasibleCoords)
+            runParetoOpt(feasibleCoords, memory, latency)
             print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
@@ -439,7 +439,7 @@ def runGLPK(memory, latency):
           
 def runGLPKPareto(memory, latency, feasibleCoords):
     # Run glpsol command
-    os.system("glpsol formulations.lp --lp solution.lp")
+    os.system("glpsol formulations.lp --lp -o solution.lp")
 
     # Open solution.lp file and check if it contains "INFEASIBLE"
     with open("solution.lp", "r") as f:
@@ -452,7 +452,7 @@ def runGLPKPareto(memory, latency, feasibleCoords):
         else:
             return f"MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE"
           
-def runParetoOpt(feasibleCoords):
+def runParetoOpt(feasibleCoords, memory, latency):
     # Split coordinates into x and y lists
     x_coords = [coord[0] for coord in feasibleCoords]
     y_coords = [coord[1] for coord in feasibleCoords]
@@ -462,6 +462,9 @@ def runParetoOpt(feasibleCoords):
     plt.xlabel("MEMORY")
     plt.ylabel("LATENCY")
     plt.title("PARETO OPTIMAL ANALYSIS")
+
+    plt.xlim([0, 2 * memory])
+    plt.ylim([0, 2 * latency])
 
     # Show plot
     plt.show()
