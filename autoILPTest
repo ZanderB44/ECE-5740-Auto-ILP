@@ -73,8 +73,8 @@ def main():
             findAllPaths(G, source, sink, allPaths)
             longestPath = criticalPath(allPaths)
             testLatency = 0
-            #for testLatency in range(0, 2 * latency):
-            for testLatency in range(latency, latency+1):
+            for testLatency in range(0, 2 * latency):
+            #for testLatency in range(latency, latency+1):
                 if (longestPath > testLatency):
                     #print("infeasible")
                     print(f"LATENCY: {testLatency} IS INFEASIBLE")
@@ -91,16 +91,15 @@ def main():
                 exeConstraints(eConstraint, variableStrings)
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
                 testMemory = 0
-                #for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
-                for testMemory in range(memory,memory+1):
+                for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
+                #for testMemory in range(memory,memory+1):
                     if (testMemory == 0):
                         continue
                     else:
                         resConstraints(variableStrings, nodeWeights, testMemory, rConstraint)
                         # write text file
                         writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
-                        #runGLPKPareto(testMemory, testLatency, feasibleCoords)
-                        #runParetoOpt(feasibleCoords)
+                        runGLPKPareto(testMemory, testLatency, feasibleCoords)
                     rConstraint.clear()
                 nodesALAP.clear()
                 variables.clear()
@@ -109,7 +108,7 @@ def main():
                 dConstraint.clear()
                 dConstraintNodes.clear()
                 longestPath = 0
-            #runParetoOpt(feasibleCoords, memory, latency)
+            runParetoOpt(feasibleCoords, memory, latency)
             print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
@@ -391,20 +390,20 @@ def resConstraints (variableStrings, nodeWeights, memory, rConstraint):
         string = string.rstrip(string[-1])
         string = string.rstrip(string[-1])
         step = string
-        step += " <= " + str(memory)
+        step += " - mem <= 0"
         rConstraint[index] = step
         index = index + 1
 
 def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
     constraintList = eConstraint + rConstraint + dConstraint
-    objStatement = "x1_1"
+    objStatement = "mem"
     # Creates a new file called 'formulations.lp' that will be submitted to GLPK
     with open("formulations.lp", "w") as f:
         # Write objective statement (Cunxi said to just write a constant, might be wrong)
         f.write(f"Minimize \nobj: {objStatement}")
 
         # Write dependency and memory constraints 
-        f.write("\n\nSubject To\n")
+        f.write(f"\n\nSubject To\nc0: mem <= {memory}\n")
         for i, const in enumerate(constraintList):
              f.write(f"c{i+1}: {const}\n")
 
@@ -420,7 +419,8 @@ def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
         f.write("\nInteger\n")
         for variable in variableStrings.values():
              string_list = " ".join(variable)
-             f.write(f"{string_list} ")
+             f.write(f"{string_list}")
+        f.write(" mem")     
         
         f.write("\n\nEnd")
 
