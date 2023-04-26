@@ -69,9 +69,7 @@ def main():
             sink = findSink(G)
             findAllPaths(G, source, sink, allPaths)
             longestPath = criticalPath(allPaths)
-            testLatency = 0
-            for testLatency in range(0, 2 * latency):
-            #for testLatency in range(latency, latency+1):
+            for testLatency in range(longestPath, 2 * latency):
                 if (longestPath > testLatency):
                     print(f"==========================LATENCY: {testLatency} IS INFEASIBLE==========================")
                     continue
@@ -87,7 +85,7 @@ def main():
                 exeConstraints(eConstraint, variableStrings)
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
                 testMemory = 0
-                for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
+                for testMemory in range(int(max(nodeWeights.values())), 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
                     if (max(nodeWeights.values()) > testMemory):
                         print(f"==========================MEMORY: {testMemory} IS INFEASIBLE==========================")
                         continue
@@ -134,7 +132,7 @@ def main():
                 writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
                 if(runGLPK(memory, testLatency)):
                     print(f"===================================================")
-                    print(f"MIN LATENCY WITH MEMORY = {memory} IS {testLatency}")
+                    print(f"MIN LATENCY WITH MEMORY = {memory} IS {testLatency - 1}")
                     print(f"===================================================")
                     break
                 testLatency = testLatency + 1
@@ -175,7 +173,7 @@ def main():
                     writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
                     if(runGLPK(testMemory, latency)):
                         print(f"===================================================")
-                        print(f"MIN MEMORY WITH LATENCY = {latency} IS {testMemory}")
+                        print(f"MIN MEMORY WITH LATENCY = {latency - 1} IS {testMemory}")
                         print(f"===================================================")
                         break
                 rConstraint.clear()
@@ -429,8 +427,6 @@ def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
         f.write(" mem")     
         
         f.write("\n\nEnd")
-
-          
 
 def runGLPK(memory, latency):
     # Run glpsol command
