@@ -41,29 +41,23 @@ def main():
         latency =  int(sys.argv[latencyIndex + 1])
         latency = latency + 1
         minimizeMemory = True
-        print(latency)
         
 
     if "-a" in sys.argv:
         memoryIndex = sys.argv.index("-a")
         memory =  int(sys.argv[memoryIndex + 1])
         minimizeLatency = True
-        print(memory)
 
     if "-g" in sys.argv:
         fileIndex = sys.argv.index("-g")
         file = sys.argv[fileIndex + 1]
-        print(file)
-            
+
     if (minimizeLatency & minimizeMemory):
         schedulingMethod = "Pareto-Optimal"
-        print("got here Pareto")
     elif (minimizeLatency & ~minimizeMemory):
         schedulingMethod = "Latency"
-        print("got here Lat Min")
     else:
         schedulingMethod = "Memory"
-        print("got here Mem Min")
     
     match schedulingMethod:
         case "Pareto-Optimal":
@@ -76,8 +70,7 @@ def main():
             for testLatency in range(0, 2 * latency):
             #for testLatency in range(latency, latency+1):
                 if (longestPath > testLatency):
-                    #print("infeasible")
-                    print(f"LATENCY: {testLatency} IS INFEASIBLE")
+                    print(f"==========================LATENCY: {testLatency} IS INFEASIBLE==========================")
                     continue
                     # end minimization
                 ASAPNodes(G, nodesASAP)
@@ -92,8 +85,6 @@ def main():
                 depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
                 testMemory = 0
                 for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
-                #for testMemory in range(memory,memory+1):
-                    print()
                     if (max(nodeWeights) > testMemory):
                         print(f"==========================MEMORY: {testMemory} IS INFEASIBLE==========================")
                         continue
@@ -113,7 +104,6 @@ def main():
                 dConstraintNodes.clear()
                 longestPath = 0
             runParetoOpt(feasibleCoords, memory, latency)
-            print("Do Pareto-Optimal analysis")
         case "Latency":
             G = createGraph(file, nodeWeights)
             source = findSource(G)
@@ -122,11 +112,14 @@ def main():
             ASAPNodes(G, nodesASAP)
             ASAP(allPaths, nodesASAP)
             longestPath = criticalPath(allPaths)
+            if (max(nodeWeights) > memory):
+                print(f"==========================MEMORY: {memory} IS INFEASIBLE==========================")
+                sys.exit(f"ERROR: Memory Constraint Is Less Than Maximum Node Weight: {max(nodeWeights)}")
+                
             testLatency = 0
             for testLatency in range(0, 2 * latency):
                 if (longestPath > testLatency):
-                    print("infeasible")
-                    print(f"LATENCY: {testLatency} IS INFEASIBLE")
+                    print(f"==========================LATENCY: {testLatency} IS INFEASIBLE==========================")
                     continue
                     # end minimization
                 ALAPNodes(G, nodesALAP, latency)
@@ -140,7 +133,11 @@ def main():
                 resConstraints(variableStrings, nodeWeights, memory, rConstraint)
                 # write text file 
                 writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
-                runGLPK(memory, latency)
+                if(runGLPK(memory, testLatency)):
+                    print(f"===================================================")
+                    print(f"MIN LATENCY WITH MEMORY = {memory} IS {testLatency}")
+                    print(f"===================================================")
+                    break
                 testLatency = testLatency + 1
                 nodesALAP.clear()
                 variables.clear()
@@ -149,7 +146,7 @@ def main():
                 dConstraint.clear()
                 dConstraintNodes.clear()
                 longestPath = 0
-            print("Do latency minimization under resource constraints")
+
         case "Memory":
             G = createGraph(file, nodeWeights)
             source = findSource(G)
@@ -164,22 +161,31 @@ def main():
             variablesWithSteps(variables, variableStrings)
             longestPath = criticalPath(allPaths)
             if (longestPath > latency):
-                print("infeasible")
-                sys.exit("ERROR: Latency constraint less than critical path length")
+                print(f"==========================LATENCY: {latency} IS INFEASIBLE==========================")
+                sys.exit(f"ERROR: Latency Constraint Less Than Critical Path Length: {longestPath}")
                 # end minimization
             removeSource(variableStrings)
             exeConstraints(eConstraint, variableStrings)
             depConstraints(G, dConstraintNodes, variableStrings, dConstraint)
-            for memory in G.nodes(): # Runs resConstraints for any value between 0 and # of nodes
-                if (memory == 0):
+            testMemory = 0
+            for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
+                print()
+                if (max(nodeWeights) > testMemory):
+                    print(f"==========================MEMORY: {testMemory} IS INFEASIBLE==========================")
+                    continue
+                if (testMemory == 0):
                     continue
                 else:
-                    resConstraints(variableStrings, nodeWeights, memory, rConstraint)
+                    resConstraints(variableStrings, nodeWeights, testMemory, rConstraint)
                     # write text file
-                    writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory)
-                    runGLPK(memory, latency)
+                    writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
+                    if(runGLPK(testMemory, latency)):
+                        print(f"===================================================")
+                        print(f"MIN MEMORY WITH LATENCY = {latency} IS {testMemory}")
+                        print(f"===================================================")
+                        break
                 rConstraint.clear()
-            print("Do memory minimization under latency constraints")
+
         case _:
             print("error")
 
@@ -430,17 +436,26 @@ def writeILP (variableStrings, rConstraint, dConstraint, eConstraint, memory):
           
 
 def runGLPK(memory, latency):
-     # Run glpsol command
-     os.system("glpsol formulations.lp --lp -o solution.lp")
+    # Run glpsol command
+    os.system("glpsol formulations.lp --lp -o solution.lp")
 
-     # Open solution.lp file and check if it contains "INFEASIBLE"
-     with open("solution.lp", "r") as f:
-          if "ERROR" in f.read():
-               return "ILP FORMULATION ERROR"
-          elif "INFEASIBLE" not in f.read():
-               return f"MEMORY: {memory}, LATENCY: {latency} IS FEASIBLE"
-          else:
-               return f"MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE"
+    try:
+        f = open("solution.lp", "r")
+    except OSError:
+        print("Could not open/read file")
+        sys.exit()
+
+    # Open solution.lp file and check if it contains "INFEASIBLE"
+    with f:
+        fileContent = f.read()
+        if "ERROR" in fileContent:
+            print("ILP FORMULATION ERROR")
+        elif "INFEASIBLE" in fileContent:
+            print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS INFEASIBLE==========================")
+            return False
+        else:
+            #print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS FEASIBLE==========================")
+            return True
           
 def runGLPKPareto(memory, latency, feasibleCoords):
     # Run glpsol command
