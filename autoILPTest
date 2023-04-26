@@ -97,9 +97,11 @@ def main():
                         resConstraints(variableStrings, nodeWeights, testMemory, rConstraint)
                         # write text file
                         writeILP (variableStrings, rConstraint, dConstraint, eConstraint, testMemory)
-                        if(runGLPKPareto(testMemory, testLatency, memory, latency, feasibleCoords)):
+                        if(runGLPKPareto(testMemory, testLatency, memory, feasibleCoords)):
+                            rConstraint.clear()
                             break
                     rConstraint.clear()
+                print("then here")
                 nodesALAP.clear()
                 variables.clear()
                 variableStrings.clear()
@@ -453,7 +455,7 @@ def runGLPK(memory, latency):
             #print(f"==========================MEMORY: {memory}, LATENCY: {latency} IS FEASIBLE==========================")
             return True
           
-def runGLPKPareto(testMemory, testLatency, memory, latency, feasibleCoords):
+def runGLPKPareto(testMemory, testLatency, memory, feasibleCoords):
     # Run glpsol command
     os.system("glpsol formulations.lp --lp -o solution.lp")
 
@@ -475,12 +477,13 @@ def runGLPKPareto(testMemory, testLatency, memory, latency, feasibleCoords):
         else:
             #X coord = memory Y = latency
             for memIt in range(testMemory, 2*memory):
-                feasibleCoords.append([memIt, latency])
+                feasibleCoords.append([memIt, testLatency])
             print(f"==========================MEMORY: {testMemory}, LATENCY: {testLatency} IS FEASIBLE==========================")
             return True
           
 def runParetoOpt(feasibleCoords, memory, latency):
     # Split coordinates into x and y lists
+    print(feasibleCoords)
     x_coords = [coord[0] for coord in feasibleCoords]
     y_coords = [coord[1] for coord in feasibleCoords]
 
