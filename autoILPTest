@@ -122,8 +122,8 @@ def main():
             testLatency = longestPath
             #for testLatency in range(0, 2 * latency):
             while(True):
-                ALAPNodes(G, nodesALAP, latency)
-                ALAP(allPaths, nodesALAP, latency)
+                ALAPNodes(G, nodesALAP, testLatency)
+                ALAP(allPaths, nodesALAP, testLatency)
                 createVariables(G, variables)
                 stepLocations(variables, nodesASAP, nodesALAP)
                 variablesWithSteps(variables, variableStrings)
