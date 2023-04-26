@@ -93,6 +93,10 @@ def main():
                 testMemory = 0
                 for testMemory in range(1, 2 * memory): # Runs resConstraints for any value between 0 and # of nodes
                 #for testMemory in range(memory,memory+1):
+                    print()
+                    if (max(nodeWeights) > testMemory):
+                        print(f"==========================MEMORY: {testMemory} IS INFEASIBLE==========================")
+                        continue
                     if (testMemory == 0):
                         continue
                     else:
