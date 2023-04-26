@@ -6,8 +6,6 @@ import sys
 import os
 
 def main():
-    print("got here")
-    print(sys.argv)
     minimizeLatency = False
     minimizeMemory = False
     schedulingMethod = ""
@@ -101,7 +99,6 @@ def main():
                             rConstraint.clear()
                             break
                     rConstraint.clear()
-                print("then here")
                 nodesALAP.clear()
                 variables.clear()
                 variableStrings.clear()
@@ -369,8 +366,6 @@ def depConstraints (G, dConstraintNodes, variableStrings, dConstraint):
 
 def resConstraints (variableStrings, nodeWeights, memory, rConstraint):
     # Makes a dictionary of all the variables and their corresponding weights
-    print("rConstraint")
-    print(rConstraint)
     numberOfSteps = 0
     for var in variableStrings:
         for step in variableStrings[var]:
@@ -483,7 +478,6 @@ def runGLPKPareto(testMemory, testLatency, memory, feasibleCoords):
           
 def runParetoOpt(feasibleCoords, memory, latency):
     # Split coordinates into x and y lists
-    print(feasibleCoords)
     x_coords = [coord[0] for coord in feasibleCoords]
     y_coords = [coord[1] for coord in feasibleCoords]
 
