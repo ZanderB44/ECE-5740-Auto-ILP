@@ -2,9 +2,9 @@
 
 Downoad code from file autoILP.py
 Create or download edgelist for minimization
-run file with command format: "python autoILP.py -l= (latency upper-bound) -a= (memory upper-bound) -g= (filename)" for Pareto Optimization 
-                              "python autoILP.py -a= (memory constriant) -g= (filename)" for Latency Minimization"
-                              "python autoILP.py -l= (latency constraint) -g= (filename)" for Memory Minimization"
+run file with command format: "python autoILP.py -l (latency upper-bound) -a (memory upper-bound) -g (filename)" for Pareto Optimization 
+                              "python autoILP.py -a (memory constriant) -g (filename)" for Latency Minimization"
+                              "python autoILP.py -l (latency constraint) -g (filename)" for Memory Minimization"
                               
 Must have GLPK installed on computer to run
 Must have python 3.10 or newer (match-case statements)
